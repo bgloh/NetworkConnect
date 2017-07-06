@@ -96,6 +96,7 @@ public class NetworkFragment extends Fragment {
         super.onAttach(context);
         // Host Activity will handle callbacks from task.
         mCallback = (DownloadCallback)context;
+
     }
 
     @Override
@@ -123,13 +124,11 @@ public class NetworkFragment extends Fragment {
 
     public void startUpload() {
         String url = "https://script.google.com/macros/s/AKfycbyi4vzNrjsMJBbPY9XMv06Rzd1_8eNoWtLa5oz2tAy5NdFsdEw/exec";
-        //String url = "www.google.com";
+        //String url2 = "www.google.com";
         cancelDownload();
         mPostTask = new PostTask();
         mPostTask.execute(url);
-
     }
-
 
 
     /**
@@ -154,41 +153,52 @@ public class NetworkFragment extends Fragment {
 
     // HTTP POST
 
-    private class PostTask extends AsyncTask<String,Integer, DownloadTask.Result> {
-        protected DownloadTask.Result doInBackground(String... urls) {
-             String value1=null,value2=null;
+    private class PostTask extends AsyncTask<String,Integer, String> {
+        protected String doInBackground(String... urls) {
+         /*    String value1=null,value2=null;
             try {
                 value1 =  URLEncoder.encode("999", "UTF-8");
                 value2 =  URLEncoder.encode("Brian", "UTF-8");
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
-           String urlParameters = "id=" + value1 + "&lName=" + value2;
+           String urlParameters = "id=" + value1 + "&lName=" + value2;*/
           //  String response = excutePost(urls[0],urlParameters);
-            String response = excutePost(urls[0],"id=100&sender=Brian");
-            return null;
+            String postData = "id=100&sender=Brian";
+            String response = excutePost(urls[0],postData);
+            return response;
         }
 
         @Override
-        protected void onPostExecute(DownloadTask.Result result) {
-            //String response = result.mResultValue.toString();
-            Toast.makeText(getContext(), "clicked", Toast.LENGTH_SHORT).show();
+        protected void onPostExecute(String result) {
+            if (result != null && mCallback != null) {
+                //String response = result.mResultValue.toString();
+                if (Integer.parseInt(result) == 200) {
+                    Toast.makeText(getContext(), "data sent OK", Toast.LENGTH_SHORT).show();
+                    mCallback.updateFromDownload(result);
+                } else {
+                    Toast.makeText(getContext(), "ERROR !!", Toast.LENGTH_SHORT).show();
+                    mCallback.updateFromDownload("Data Sent ERRROR !!");
+                }
+                mCallback.finishDownloading();
+            }
         }
 
         private String excutePost(String targetURL, String urlParameters) {
             URL url;
-            HttpURLConnection connection = null;
+            HttpsURLConnection connection = null;
             try {
                 //Create connection
                 url = new URL(targetURL);
-                connection = (HttpURLConnection) url.openConnection();
+                connection = (HttpsURLConnection) url.openConnection();
+                connection.setConnectTimeout(3000); // ms
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
                 connection.setRequestProperty("Content-Length", "" + Integer.toString(urlParameters.getBytes().length));
                 connection.setRequestProperty("Content-Language", "en-US");
                 connection.setUseCaches(false);
-                connection.setDoInput(true);
-                connection.setDoOutput(true);
+                connection.setDoInput(true); // open communication link : network traffics occur here
+                connection.setDoOutput(true); // open communication link
 
                 //Send request
                 DataOutputStream wr = new DataOutputStream(
@@ -196,25 +206,12 @@ public class NetworkFragment extends Fragment {
                 wr.writeBytes(urlParameters);
                 wr.flush();
                 wr.close();
-                // Toast.makeText(getContext(), "send request", Toast.LENGTH_SHORT).show();
-
-                //Get Response
-                /*InputStream is = connection.getInputStream();
-                BufferedReader rd = new BufferedReader(new InputStreamReader(is));
-                String line;
-                StringBuffer response = new StringBuffer();
-                while ((line = rd.readLine()) != null) {
-                    response.append(line);
-                    response.append('\r');
-                }
-                rd.close();
-                return response.toString();*/
                 return Integer.toString(connection.getResponseCode());
 
             } catch (Exception e) {
 
                 e.printStackTrace();
-                return null;
+                return e.getMessage();
 
             } finally {
 

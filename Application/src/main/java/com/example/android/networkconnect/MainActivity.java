@@ -121,11 +121,11 @@ public class MainActivity extends FragmentActivity implements DownloadCallback {
     }
 
 
-
     @Override
     public void updateFromDownload(String result)  {
         if (result != null)  {
-               JSONparse(result);
+            mDataText.setText(result);
+            JSONparse(result);
         } else {
             mDataText.setText(getString(R.string.connection_error));
         }
