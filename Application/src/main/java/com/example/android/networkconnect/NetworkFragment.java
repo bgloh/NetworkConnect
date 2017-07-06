@@ -25,13 +25,22 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
+import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -45,6 +54,7 @@ public class NetworkFragment extends Fragment {
 
     private DownloadCallback mCallback;
     private DownloadTask mDownloadTask;
+    private PostTask mPostTask;  // upload task i made
     private String mUrlString;
 
     /**
@@ -111,6 +121,17 @@ public class NetworkFragment extends Fragment {
         mDownloadTask.execute(mUrlString);
     }
 
+    public void startUpload() {
+        String url = "https://script.google.com/macros/s/AKfycbyi4vzNrjsMJBbPY9XMv06Rzd1_8eNoWtLa5oz2tAy5NdFsdEw/exec";
+        //String url = "www.google.com";
+        cancelDownload();
+        mPostTask = new PostTask();
+        mPostTask.execute(url);
+
+    }
+
+
+
     /**
      * Cancel (and interrupt if necessary) any ongoing DownloadTask execution.
      */
@@ -119,11 +140,93 @@ public class NetworkFragment extends Fragment {
             mDownloadTask.cancel(true);
             mDownloadTask = null;
         }
+
+        // cancel Post Task
+        if(mPostTask != null){
+            mPostTask.cancel(true);
+            mPostTask=null;
+        }
     }
 
     /**
      * Implementation of AsyncTask that runs a network operation on a background thread.
      */
+
+    // HTTP POST
+
+    private class PostTask extends AsyncTask<String,Integer, DownloadTask.Result> {
+        protected DownloadTask.Result doInBackground(String... urls) {
+             String value1=null,value2=null;
+            try {
+                value1 =  URLEncoder.encode("999", "UTF-8");
+                value2 =  URLEncoder.encode("Brian", "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+           String urlParameters = "id=" + value1 + "&lName=" + value2;
+          //  String response = excutePost(urls[0],urlParameters);
+            String response = excutePost(urls[0],"id=100&sender=Brian");
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(DownloadTask.Result result) {
+            //String response = result.mResultValue.toString();
+            Toast.makeText(getContext(), "clicked", Toast.LENGTH_SHORT).show();
+        }
+
+        private String excutePost(String targetURL, String urlParameters) {
+            URL url;
+            HttpURLConnection connection = null;
+            try {
+                //Create connection
+                url = new URL(targetURL);
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                connection.setRequestProperty("Content-Length", "" + Integer.toString(urlParameters.getBytes().length));
+                connection.setRequestProperty("Content-Language", "en-US");
+                connection.setUseCaches(false);
+                connection.setDoInput(true);
+                connection.setDoOutput(true);
+
+                //Send request
+                DataOutputStream wr = new DataOutputStream(
+                        connection.getOutputStream());
+                wr.writeBytes(urlParameters);
+                wr.flush();
+                wr.close();
+                // Toast.makeText(getContext(), "send request", Toast.LENGTH_SHORT).show();
+
+                //Get Response
+                /*InputStream is = connection.getInputStream();
+                BufferedReader rd = new BufferedReader(new InputStreamReader(is));
+                String line;
+                StringBuffer response = new StringBuffer();
+                while ((line = rd.readLine()) != null) {
+                    response.append(line);
+                    response.append('\r');
+                }
+                rd.close();
+                return response.toString();*/
+                return Integer.toString(connection.getResponseCode());
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+                return null;
+
+            } finally {
+
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+        }
+    }
+
+
+    // HTTP GET
     private class DownloadTask extends AsyncTask<String, Integer, DownloadTask.Result> {
 
         /**
@@ -223,12 +326,14 @@ public class NetworkFragment extends Fragment {
          */
         private String downloadUrl(URL url) throws IOException {
             InputStream stream = null;
-            //HttpsURLConnection connection = null;
-            URLConnection connection = null;
+            HttpURLConnection connection = null;
+           // HttpsURLConnection connection = null;
+            // URLConnection connection = null;
             String result = null;
             try {
-                //connection = (HttpsURLConnection) url.openConnection();
-                connection = url.openConnection();
+                 connection = (HttpURLConnection) url.openConnection();
+                // connection = (HttpsURLConnection) url.openConnection();
+               // connection = url.openConnection();
                 // Timeout for reading InputStream arbitrarily set to 3000ms.
                 connection.setReadTimeout(3000);
                 // Timeout for connection.connect() arbitrarily set to 3000ms.

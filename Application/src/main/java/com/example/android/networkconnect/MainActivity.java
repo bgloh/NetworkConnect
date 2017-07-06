@@ -31,6 +31,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import javax.net.ssl.HttpsURLConnection;
 
 /**
  * Sample Activity demonstrating how to connect to the network and fetch raw
@@ -80,6 +87,14 @@ public class MainActivity extends FragmentActivity implements DownloadCallback {
             case R.id.fetch_action:
                 startDownload();
                 return true;
+            // HTTP POST
+            case R.id.post_action:
+                try {
+                    startUpload();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return true;
             // Clear the text and cancel download.
             case R.id.clear_action:
                 finishDownloading();
@@ -96,6 +111,16 @@ public class MainActivity extends FragmentActivity implements DownloadCallback {
             mDownloading = true;
         }
     }
+
+    private void startUpload() {
+        if (!mDownloading && mNetworkFragment != null) {
+            // Execute the async download.
+            mNetworkFragment.startUpload();
+            mDownloading = true;
+        }
+    }
+
+
 
     @Override
     public void updateFromDownload(String result)  {
